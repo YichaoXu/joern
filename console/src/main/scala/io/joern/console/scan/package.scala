@@ -101,13 +101,26 @@ package object scan {
   /** Print human readable list of findings to standard out.
     */
   def outputFindings(cpg: Cpg)(implicit finder: NodeExtensionFinder): Unit = {
-    cpg.finding.sortBy(_.score.toInt).foreach { finding =>
-      val evidence = finding.evidence.headOption
-        .map { e =>
-          s"${e.location.filename}:${e.location.lineNumber.getOrElse(0)}:${e.location.methodFullName}"
-        }
-        .getOrElse("")
-      println(s"Result: ${finding.score} : ${finding.title}: $evidence")
+    val groupedFindings = cpg.finding.groupBy((finding: Finding) => finding.title)
+    groupedFindings.zipWithIndex.foreach { case ((title, findings), index) =>
+      // Helper function to format location string, returns "null:null" if node doesn't exist
+      def getLocationString(node: Option[StoredNode]): String = {
+        node.map(n => 
+          s"${n.location.filename}:${n.location.lineNumber.getOrElse(0)}"
+        ).getOrElse("null:null")
+      }
+      // Process evidences as pairs of (source, sink)
+      val shortTitle = title.split(":").head
+      // Group evidences into pairs and process each vulnerability
+      // Get all evidence nodes from all findings with this title
+      val rawEvidences = findings.flatMap(_.evidence).toList
+      val evidences = if (rawEvidences.isEmpty) List(null, null)
+      else if (rawEvidences.length %2 == 0) rawEvidences else rawEvidences :+ null
+      evidences.grouped(2).zipWithIndex.foreach { case (pair, vulnIndex) =>
+        val src = getLocationString(Some(pair.head))
+        val sink = getLocationString(Option(pair.last))          
+        println(f"VULN>$shortTitle#${vulnIndex + 1} $src => $sink\n")
+      }  
     }
   }
 

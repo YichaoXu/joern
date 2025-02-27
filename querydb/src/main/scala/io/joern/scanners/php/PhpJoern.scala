@@ -7,6 +7,7 @@ import io.joern.macros.QueryMacros.*
 import io.joern.scanners.*
 import io.shiftleft.codepropertygraph.generated.Operators
 import io.shiftleft.semanticcpg.language.*
+import io.shiftleft.codepropertygraph.generated.nodes.NewFinding
 
 object PhpJoern extends QueryBundle {
 
@@ -27,9 +28,14 @@ object PhpJoern extends QueryBundle {
       withStrRep({ cpg =>
         // $_REQUEST["foo"], $_GET["foo"], $_POST["foo"]
         // are identifier (at the moment)
-        def source = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
-        def sink = cpg.call.name("(query|mysql_query|mysqli_query|mysqli_prepare|mysqli_execute|pg_query|pg_prepare)").argument
-        sink.reachableBy(source)
+        def sources = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
+        def sinks = cpg.call.name("(query|mysql_query|mysqli_query|mysqli_prepare|mysqli_execute|pg_query|pg_prepare)")
+                
+        // Find the first matching source-sink pair
+        val cartesian = sources.flatMap(i => sinks.map(j => (i, j)))
+        val allMatches = cartesian.filter((src, sink) => sink.argument.reachableBy(src).hasNext)
+        // Return the first matching pair's sink argument as an iterator
+        allMatches.flatMap((src, sink) => List(src, sink))
       }),
       tags = List(QueryTags.sqlInjection, QueryTags.default)
     )
@@ -49,10 +55,13 @@ object PhpJoern extends QueryBundle {
       withStrRep({ cpg =>
         // $_REQUEST["foo"], $_GET["foo"], $_POST["foo"]
         // are identifier (at the moment)
-        def source = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
-        def sink = cpg.call.name("(system|exec|shell_exec|passthru|popen|proc_open|backticks)").argument
-
-        sink.reachableBy(source)
+        def sources = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
+        def sinks = cpg.call.name("(system|exec|shell_exec|passthru|popen|proc_open|backticks)")
+        // Find the first matching source-sink pair
+        val cartesian = sources.flatMap(i => sinks.map(j => (i, j)))
+        val allMatches = cartesian.filter((src, sink) => sink.argument.reachableBy(src).hasNext)
+        // Return the first matching pair's sink argument as an iterator
+        allMatches.flatMap((src, sink) => List(src, sink))
       }),
       tags = List(QueryTags.xss, QueryTags.default)
     ) 
@@ -70,11 +79,19 @@ object PhpJoern extends QueryBundle {
           |""".stripMargin,
       score = 5,
       withStrRep({ cpg =>
-        // $_REQUEST["foo"], $_GET["foo"], $_POST["foo"]
-        // are identifier (at the moment)
-        def source = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
-        def sink = cpg.call.name("(eval|assert|create_function|include|include_once|require|require_once|call_user_func|call_user_func_array)").argument
-        sink.reachableBy(source)
+        // Get all potential sources
+        val sources = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
+        
+        // Get all potential dangerous function calls
+        val sinks = cpg.call.name(
+          "(eval|assert|create_function|include|include_once|require|require_once|call_user_func|call_user_func_array)"
+        )
+        
+        // Find the first matching source-sink pair
+        val cartesian = sources.flatMap(i => sinks.map(j => (i, j)))
+        val allMatches = cartesian.filter((src, sink) => sink.argument.reachableBy(src).hasNext)
+        // Return the first matching pair's sink argument as an iterator
+        allMatches.flatMap((src, sink) => List(src, sink))
       }),
       tags = List(QueryTags.remoteCodeExecution, QueryTags.default)
     ) 
@@ -94,9 +111,14 @@ object PhpJoern extends QueryBundle {
       withStrRep({ cpg =>
         // $_REQUEST["foo"], $_GET["foo"], $_POST["foo"]
         // are identifier (at the moment)
-        def source = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
-        def sink = cpg.call.name("(file_get_contents|readfile|fgets|file|fopen|file_put_contents|fwrite|move_uploaded_file|unlink|rename|chmod|chown)").argument
-        sink.reachableBy(source)
+        def sources = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
+        def sinks = cpg.call.name("(file_get_contents|readfile|fgets|file|fopen|file_put_contents|fwrite|move_uploaded_file|unlink|rename|chmod|chown)")
+ 
+        // Find the first matching source-sink pair
+        val cartesian = sources.flatMap(i => sinks.map(j => (i, j)))
+        val allMatches = cartesian.filter((src, sink) => sink.argument.reachableBy(src).hasNext)
+        // Return the first matching pair's sink argument as an iterator
+        allMatches.flatMap((src, sink) => List(src, sink))
       }),
       tags = List(QueryTags.default)
     ) 
@@ -117,9 +139,13 @@ object PhpJoern extends QueryBundle {
       withStrRep({ cpg =>
         // $_REQUEST["foo"], $_GET["foo"], $_POST["foo"]
         // are identifier (at the moment)
-        def source = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
-        def sink = cpg.call.name("(assert|echo|exit|print|printf|vprintf|print_r|var_dump)").argument
-        sink.reachableBy(source)
+        def sources = cpg.assignment.source.code(".*_(REQUEST|GET|POST).*")
+        def sinks = cpg.call.name("(assert|echo|exit|print|printf|vprintf|print_r|var_dump)")        
+        // Find the first matching source-sink pair
+        val cartesian = sources.flatMap(i => sinks.map(j => (i, j)))
+        val allMatches = cartesian.filter((src, sink) => sink.argument.reachableBy(src).hasNext)
+        // Return the first matching pair's sink argument as an iterator
+        allMatches.flatMap((src, sink) => List(src, sink))
       }),
       tags = List(QueryTags.xss, QueryTags.default)
     )

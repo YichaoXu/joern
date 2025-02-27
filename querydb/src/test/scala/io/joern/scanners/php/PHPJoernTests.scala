@@ -19,7 +19,7 @@ class PHPJoernTests extends PHPQueryTestSuite(PhpJoern) {
           |""".stripMargin)
       val query   = queryBundle.sqli()
       val results = this.findMatchingCalls(cpg, query)
-      results shouldBe List("$_GET[\"username\"]")
+      results shouldBe List("$_GET[\"username\"]", "mysql_query($query)")
     }
 
     "ignores safe code execution without user input" in {
@@ -42,7 +42,7 @@ class PHPJoernTests extends PHPQueryTestSuite(PhpJoern) {
           |""".stripMargin)
       val query   = queryBundle.cmdi()
       val results = this.findMatchingCalls(cpg, query)
-      results shouldBe List("$_GET[\"cmd\"]")
+      results shouldBe List("$_GET[\"cmd\"]", "system($cmd)")
     }
 
     "ignores safe code execution without user input" in {
@@ -64,7 +64,7 @@ class PHPJoernTests extends PHPQueryTestSuite(PhpJoern) {
           |""".stripMargin)
       val query   = queryBundle.codei()
       val results = this.findMatchingCalls(cpg, query)
-      results shouldBe List("$_GET[\"code\"]")
+      results shouldBe List("$_GET[\"code\"]", "eval($code)")
     }
 
     "ignores safe code execution without user input" in {
@@ -86,7 +86,7 @@ class PHPJoernTests extends PHPQueryTestSuite(PhpJoern) {
           |""".stripMargin)
       val query   = queryBundle.uuf()
       val results = this.findMatchingCalls(cpg, query)
-      results shouldBe List("$_GET[\"file_name\"]")
+      results shouldBe List("$_GET[\"file_name\"]", "move_uploaded_file(\"tmp_file\",\"/uploads/\" . $filename)")
     }
 
     "ignores safe code execution without user input" in {
@@ -108,7 +108,7 @@ class PHPJoernTests extends PHPQueryTestSuite(PhpJoern) {
           |""".stripMargin)
       val query   = queryBundle.xss()
       val results = this.findMatchingCalls(cpg, query)
-      results shouldBe List("$_GET[\"input\"]")
+      results shouldBe List("$_GET[\"input\"]", "echo $user_input")
     }
 
     "ignores safe code execution without user input" in {
